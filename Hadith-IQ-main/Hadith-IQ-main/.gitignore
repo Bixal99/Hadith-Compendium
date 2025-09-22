@@ -1,0 +1,82 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions and build artifacts
+*.so
+*.o
+*.out
+
+# FAISS index files (commonly saved as .index or .faiss)
+*.index
+*.faiss
+
+# NLP downloaded models/data
+nltk_data/
+camel_tools_resources/
+torch_cache/
+transformers_cache/
+*.pth
+*.pt
+
+# Environment variables and credentials
+.env
+.env.*
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Logs and temp files
+*.log
+*.tmp
+*.bak
+
+# VS Code settings
+.vscode/
+
+# PyCharm settings
+.idea/
+
+# Python type checker and testing
+.mypy_cache/
+.pytest_cache/
+.pyre/
+dmypy.json
+.coverage
+coverage.xml
+htmlcov/
+nosetests.xml
+
+# pip wheel and distribution
+*.egg-info/
+dist/
+build/
+*.whl
+
+# SQLite or temporary DB (if used)
+*.db
+
+# Downloaded models / NLP caches
+~/.cache/
+.cache/
+__pypackages__/
+
+# Jupyter & Notebook leftovers
+.ipynb_checkpoints/
+
+# Mac and system files
+.DS_Store
+Thumbs.db
+
+# Test result or output artifacts
+test-results/
+
+# Backup files
+*~
+
+# FastAPI auto-generated or working dirs (if any)
+instance/
