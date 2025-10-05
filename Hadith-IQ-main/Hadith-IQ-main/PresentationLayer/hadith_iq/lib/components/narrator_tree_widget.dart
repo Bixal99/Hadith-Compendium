@@ -29,6 +29,9 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
 
   // Current narrator for navigation
   late String _currentNarrator;
+  
+  // Zoom level for the tree
+  double _zoomLevel = 1.0;
 
   @override
   void initState() {
@@ -304,18 +307,32 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
       );
     }
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Navigation controls
-          _buildNavigationControls(),
-          const SizedBox(height: 16),
+    return Stack(
+      children: [
+        SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: [
+              // Navigation controls
+              _buildNavigationControls(),
+              const SizedBox(height: 16),
 
-          // Tree visualization
-          _buildTreeVisualization(),
-        ],
-      ),
+              // Tree visualization with zoom
+              Transform.scale(
+                scale: _zoomLevel,
+                child: _buildTreeVisualization(),
+              ),
+            ],
+          ),
+        ),
+        
+        // Zoom controls positioned at bottom right
+        Positioned(
+          bottom: 20,
+          right: 20,
+          child: _buildZoomControls(),
+        ),
+      ],
     );
   }
 
@@ -388,6 +405,50 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
             ),
           ],
 
+          // No teachers message
+          if (allTeachers.isEmpty)
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 20),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceVariant
+                    .withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.arrow_upward,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    size: 24,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'لا يوجد أساتذة',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  Text(
+                    'No teachers found',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant
+                              .withOpacity(0.7),
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+
           // Current Narrator (Center) - No spacing, directly connected
           Center(
             child: _buildChainNode(
@@ -405,6 +466,50 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
               isTeachers: false,
             ),
           ],
+
+          // No students message
+          if (allStudents.isEmpty)
+            Container(
+              margin: const EdgeInsets.symmetric(vertical: 20),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceVariant
+                    .withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.arrow_downward,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    size: 24,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'لا يوجد تلاميذ',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  Text(
+                    'No students found',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant
+                              .withOpacity(0.7),
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
 
           // No relationships found message
           if (allTeachers.isEmpty && allStudents.isEmpty)
@@ -488,7 +593,7 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
           ),
           // Individual arrows from each teacher box converging to center - more space
           SizedBox(
-            height: 180,
+            height: 500,
             width: narrators.length * approximateBoxWidth,
             child: CustomPaint(
               painter: ConnectedArrowsPainter(
@@ -503,7 +608,7 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
         ] else ...[
           // Individual arrows from center diverging to each student box - more space
           SizedBox(
-            height: 180,
+            height: 500,
             width: narrators.length * approximateBoxWidth,
             child: CustomPaint(
               painter: ConnectedArrowsFromCenterPainter(
@@ -530,6 +635,8 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
               );
             }).toList(),
           ),
+          // Extra space at bottom to make arrowheads visible
+          const SizedBox(height: 60),
         ],
       ],
     );
@@ -821,6 +928,85 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
       ),
     );
   }
+
+  Widget _buildZoomControls() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Zoom In button
+          IconButton(
+            onPressed: () {
+              setState(() {
+                if (_zoomLevel < 2.0) {
+                  _zoomLevel += 0.1;
+                }
+              });
+            },
+            icon: const Icon(Icons.add),
+            tooltip: 'Zoom In',
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          
+          // Zoom level indicator
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              '${(_zoomLevel * 100).toInt()}%',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+            ),
+          ),
+          
+          // Zoom Out button
+          IconButton(
+            onPressed: () {
+              setState(() {
+                if (_zoomLevel > 0.5) {
+                  _zoomLevel -= 0.1;
+                }
+              });
+            },
+            icon: const Icon(Icons.remove),
+            tooltip: 'Zoom Out',
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          
+          // Reset zoom button
+          IconButton(
+            onPressed: () {
+              setState(() {
+                _zoomLevel = 1.0;
+              });
+            },
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Reset Zoom',
+            color: Theme.of(context).colorScheme.secondary,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class IsnadTreeLinePainter extends CustomPainter {
@@ -909,27 +1095,28 @@ class ConnectedArrowsPainter extends CustomPainter {
 
     final centerX = size.width / 2;
 
-    // Calculate exact positions based on box spacing
+    // Calculate exact positions - boxes have 100px margin between them (50px each side)
+    // So actual spacing between box centers is boxSpacing
     final totalWidth = (count - 1) * boxSpacing;
     final startX = centerX - (totalWidth / 2);
 
     // Draw individual arrows - each from its box CENTER to center narrator
     for (int i = 0; i < count; i++) {
-      // Calculate the center of each box (not left edge)
+      // Calculate the center of each box
       final boxCenterX = startX + (i * boxSpacing);
 
       // Draw line from each box's center position
       final path = Path();
 
-      // Start from top at box center
-      path.moveTo(boxCenterX, 0);
+      // Start from top at box center exactly at box edge (no gap)
+      path.moveTo(boxCenterX, 0); // Start at 0 to touch box bottom
 
-      // Draw curved line to bottom center narrator
+      // Draw curved line to center narrator
       path.quadraticBezierTo(
         boxCenterX,
         size.height * 0.3, // Control point for curve
         centerX,
-        size.height,
+        size.height, // End at bottom to touch box top
       );
 
       canvas.drawPath(path, paint);
@@ -972,27 +1159,27 @@ class ConnectedArrowsFromCenterPainter extends CustomPainter {
 
     final centerX = size.width / 2;
 
-    // Calculate exact positions based on box spacing
+    // Calculate exact positions - boxes have 100px margin between them (50px each side)
     final totalWidth = (count - 1) * boxSpacing;
     final startX = centerX - (totalWidth / 2);
 
     // Draw individual arrows from center to each student box CENTER
     for (int i = 0; i < count; i++) {
-      // Calculate the center of each box (not left edge)
+      // Calculate the center of each box
       final boxCenterX = startX + (i * boxSpacing);
 
       // Draw line from center to each box's center position
       final path = Path();
 
-      // Start from center narrator (top)
-      path.moveTo(centerX, 0);
+      // Start from center narrator exactly at box edge (no gap)
+      path.moveTo(centerX, 0); // Start at 0 to touch box bottom
 
       // Draw curved line to student box center (bottom)
       path.quadraticBezierTo(
         boxCenterX,
         size.height * 0.7, // Control point for curve
         boxCenterX,
-        size.height,
+        size.height, // End at bottom to touch box top
       );
 
       canvas.drawPath(path, paint);
