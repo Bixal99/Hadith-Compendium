@@ -247,11 +247,13 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
       }
     }
 
-    // Build the linear tree structure
+    // Build the linear tree structure with all teachers and students
     return {
       'narrator': treeData['narrator'] ?? {'name': _currentNarrator},
       'direct_teacher': directTeacher,
       'direct_student': directStudent,
+      'all_teachers': teacherFrequency.keys.toList(),
+      'all_students': studentFrequency.keys.toList(),
       'chains_data': chainsData,
       'total_chains': chains.length,
       'teacher_frequency': teacherFrequency,
@@ -318,49 +320,130 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
   }
 
   Widget _buildTreeVisualization() {
-    final directTeacher = _treeData!['direct_teacher'] as String?;
-    final directStudent = _treeData!['direct_student'] as String?;
+    final allTeachers = _treeData!['all_teachers'] as List<dynamic>? ?? [];
+    final allStudents = _treeData!['all_students'] as List<dynamic>? ?? [];
     final narrator = _treeData!['narrator'] as Map<String, dynamic>;
     final totalChains = _treeData!['total_chains'] ?? 0;
 
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
-        ),
         borderRadius: BorderRadius.circular(16),
         color: Theme.of(context).colorScheme.surface,
       ),
-      child: Column(
-        children: [
-          // Vertical chain: Teacher -> Narrator -> Student
-          _buildVerticalChain(directTeacher, narrator, directStudent),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Vertical chain: Teachers -> Narrator -> Students
+            _buildVerticalChainWithAll(allTeachers, narrator, allStudents),
 
-          // Empty state message - show only if no chains at all
-          if (totalChains == 0)
+            // Empty state message - show only if no chains at all
+            if (totalChains == 0)
+              Container(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.link_off,
+                      color: Theme.of(context).colorScheme.outline,
+                      size: 64,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'لا توجد سلاسل إسناد لهذا الراوي',
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'No isnad chains found for this narrator',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: Theme.of(context).colorScheme.outline,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVerticalChainWithAll(List<dynamic> allTeachers,
+      Map<String, dynamic> narrator, List<dynamic> allStudents) {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // All Teachers (Top) - Horizontal Row with Arrows
+          if (allTeachers.isNotEmpty) ...[
+            _buildNarratorsWithArrows(
+              narrators: allTeachers.cast<String>(),
+              isTeachers: true,
+            ),
+          ],
+
+          // Current Narrator (Center) - No spacing, directly connected
+          Center(
+            child: _buildChainNode(
+              name: narrator['name'] ?? _currentNarrator,
+              icon: Icons.person,
+              isClickable: false,
+              isCenter: true,
+            ),
+          ),
+
+          // All Students (Bottom) - Horizontal Row with Arrows
+          if (allStudents.isNotEmpty) ...[
+            _buildNarratorsWithArrows(
+              narrators: allStudents.cast<String>(),
+              isTeachers: false,
+            ),
+          ],
+
+          // No relationships found message
+          if (allTeachers.isEmpty && allStudents.isEmpty)
             Container(
-              padding: const EdgeInsets.all(32),
+              margin: const EdgeInsets.symmetric(vertical: 20),
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .surfaceVariant
+                    .withOpacity(0.5),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+                ),
+              ),
               child: Column(
                 children: [
                   Icon(
-                    Icons.link_off,
-                    color: Theme.of(context).colorScheme.outline,
-                    size: 64,
+                    Icons.info_outline,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    size: 32,
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 12),
                   Text(
-                    'لا توجد سلاسل إسناد لهذا الراوي',
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
+                    'هذا الراوي ليس له أستاذ أو تلميذ مباشر في السلاسل المتاحة',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   Text(
-                    'No isnad chains found for this narrator',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.outline,
+                    'This narrator has no direct teacher or student in available chains',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant
+                              .withOpacity(0.8),
                         ),
                     textAlign: TextAlign.center,
                   ),
@@ -372,87 +455,113 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
     );
   }
 
-  Widget _buildVerticalChain(String? directTeacher,
-      Map<String, dynamic> narrator, String? directStudent) {
+  Widget _buildNarratorsWithArrows({
+    required List<String> narrators,
+    required bool isTeachers,
+  }) {
+    // Calculate center position for each narrator box
+    // Each box has: minWidth: 120, maxWidth: 200, margin: 50 on each side
+    // Average box width ~160, total width per box = 160 + 100(margins) = 260
+    const double approximateBoxWidth = 260.0;
+
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Direct Teacher (Top)
-        if (directTeacher != null) ...[
-          _buildChainNode(
-            name: directTeacher,
-            icon: Icons.school,
-            isClickable: true,
-            isCenter: false,
+        // For teachers: boxes first, then arrows below them pointing down to center
+        // For students: arrows first from center pointing down to boxes, then boxes
+        if (isTeachers) ...[
+          // Teacher boxes at top
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: narrators.map((narrator) {
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 50),
+                child: _buildChainNode(
+                  name: narrator,
+                  icon: Icons.school,
+                  isClickable: true,
+                  isCenter: false,
+                ),
+              );
+            }).toList(),
           ),
-          const SizedBox(height: 8),
-          _buildVerticalConnector(isDownward: true),
-          const SizedBox(height: 8),
-        ],
-
-        // Current Narrator (Center)
-        _buildChainNode(
-          name: narrator['name'] ?? _currentNarrator,
-          icon: Icons.person,
-          isClickable: false,
-          isCenter: true,
-        ),
-
-        // Direct Student (Bottom)
-        if (directStudent != null) ...[
-          const SizedBox(height: 8),
-          _buildVerticalConnector(isDownward: true),
-          const SizedBox(height: 8),
-          _buildChainNode(
-            name: directStudent,
-            icon: Icons.person_outline,
-            isClickable: true,
-            isCenter: false,
-          ),
-        ],
-
-        // No relationships found message
-        if (directTeacher == null && directStudent == null)
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 20),
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color:
-                  Theme.of(context).colorScheme.surfaceVariant.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: Theme.of(context).colorScheme.outline.withOpacity(0.3),
+          // Individual arrows from each teacher box converging to center - more space
+          SizedBox(
+            height: 180,
+            width: narrators.length * approximateBoxWidth,
+            child: CustomPaint(
+              painter: ConnectedArrowsPainter(
+                count: narrators.length,
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
+                isDownward: true,
+                boxSpacing: approximateBoxWidth,
               ),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.info_outline,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  size: 32,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'هذا الراوي ليس له أستاذ أو تلميذ مباشر في السلاسل المتاحة',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'This narrator has no direct teacher or student in available chains',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurfaceVariant
-                            .withOpacity(0.8),
-                      ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+              child: Container(),
             ),
           ),
+        ] else ...[
+          // Individual arrows from center diverging to each student box - more space
+          SizedBox(
+            height: 180,
+            width: narrators.length * approximateBoxWidth,
+            child: CustomPaint(
+              painter: ConnectedArrowsFromCenterPainter(
+                count: narrators.length,
+                color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
+                boxSpacing: approximateBoxWidth,
+              ),
+              child: Container(),
+            ),
+          ),
+          // Student boxes at bottom
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: narrators.map((narrator) {
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 50),
+                child: _buildChainNode(
+                  name: narrator,
+                  icon: Icons.person_outline,
+                  isClickable: true,
+                  isCenter: false,
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ],
+    );
+  }
+
+  Widget _buildHorizontalScrollableRow({
+    required List<String> narrators,
+    required bool isTeachers,
+  }) {
+    return Center(
+      child: SizedBox(
+        height: 100,
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: narrators.asMap().entries.map((entry) {
+              final narrator = entry.value;
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 50),
+                child: _buildChainNode(
+                  name: narrator,
+                  icon: isTeachers ? Icons.school : Icons.person_outline,
+                  isClickable: true,
+                  isCenter: false,
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
     );
   }
 
@@ -467,6 +576,10 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
         isCenter ? Theme.of(context).colorScheme.primary : Colors.grey.shade600;
 
     final baseContainer = Container(
+      constraints: const BoxConstraints(
+        minWidth: 120,
+        maxWidth: 200,
+      ),
       padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
       decoration: BoxDecoration(
         color: nodeColor.withOpacity(0.12),
@@ -484,13 +597,8 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
-            icon,
-            color: nodeColor,
-            size: 28,
-          ),
-          const SizedBox(height: 8),
           Text(
             name,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -515,6 +623,20 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
     }
 
     return baseContainer;
+  }
+
+  Widget _buildMultipleConnectors(int count, {required bool isDownward}) {
+    return SizedBox(
+      height: 60,
+      child: CustomPaint(
+        painter: MultipleArrowsPainter(
+          count: count,
+          color: Theme.of(context).colorScheme.primary.withOpacity(0.6),
+          isDownward: isDownward,
+        ),
+        child: Container(),
+      ),
+    );
   }
 
   Widget _buildVerticalConnector({required bool isDownward}) {
@@ -758,6 +880,203 @@ class IsnadTreeLinePainter extends CustomPainter {
     }
 
     canvas.drawPath(arrowPath, paint..style = PaintingStyle.stroke);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class ConnectedArrowsPainter extends CustomPainter {
+  final int count;
+  final Color color;
+  final bool isDownward;
+  final double boxSpacing;
+
+  ConnectedArrowsPainter({
+    required this.count,
+    required this.color,
+    required this.isDownward,
+    required this.boxSpacing,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final centerX = size.width / 2;
+
+    // Calculate exact positions based on box spacing
+    final totalWidth = (count - 1) * boxSpacing;
+    final startX = centerX - (totalWidth / 2);
+
+    // Draw individual arrows - each from its box CENTER to center narrator
+    for (int i = 0; i < count; i++) {
+      // Calculate the center of each box (not left edge)
+      final boxCenterX = startX + (i * boxSpacing);
+
+      // Draw line from each box's center position
+      final path = Path();
+
+      // Start from top at box center
+      path.moveTo(boxCenterX, 0);
+
+      // Draw curved line to bottom center narrator
+      path.quadraticBezierTo(
+        boxCenterX,
+        size.height * 0.3, // Control point for curve
+        centerX,
+        size.height,
+      );
+
+      canvas.drawPath(path, paint);
+
+      // Draw arrowhead at the bottom pointing to center
+      final arrowPath = Path();
+      final arrowSize = 6.0;
+
+      arrowPath.moveTo(centerX - arrowSize, size.height - arrowSize);
+      arrowPath.lineTo(centerX, size.height);
+      arrowPath.lineTo(centerX + arrowSize, size.height - arrowSize);
+
+      canvas.drawPath(arrowPath, paint..style = PaintingStyle.fill);
+      paint.style = PaintingStyle.stroke;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class ConnectedArrowsFromCenterPainter extends CustomPainter {
+  final int count;
+  final Color color;
+  final double boxSpacing;
+
+  ConnectedArrowsFromCenterPainter({
+    required this.count,
+    required this.color,
+    required this.boxSpacing,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final centerX = size.width / 2;
+
+    // Calculate exact positions based on box spacing
+    final totalWidth = (count - 1) * boxSpacing;
+    final startX = centerX - (totalWidth / 2);
+
+    // Draw individual arrows from center to each student box CENTER
+    for (int i = 0; i < count; i++) {
+      // Calculate the center of each box (not left edge)
+      final boxCenterX = startX + (i * boxSpacing);
+
+      // Draw line from center to each box's center position
+      final path = Path();
+
+      // Start from center narrator (top)
+      path.moveTo(centerX, 0);
+
+      // Draw curved line to student box center (bottom)
+      path.quadraticBezierTo(
+        boxCenterX,
+        size.height * 0.7, // Control point for curve
+        boxCenterX,
+        size.height,
+      );
+
+      canvas.drawPath(path, paint);
+
+      // Draw arrowhead at each student box center pointing down
+      final arrowPath = Path();
+      final arrowSize = 6.0;
+
+      arrowPath.moveTo(boxCenterX - arrowSize, size.height - arrowSize);
+      arrowPath.lineTo(boxCenterX, size.height);
+      arrowPath.lineTo(boxCenterX + arrowSize, size.height - arrowSize);
+
+      canvas.drawPath(arrowPath, paint..style = PaintingStyle.fill);
+      paint.style = PaintingStyle.stroke;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class MultipleArrowsPainter extends CustomPainter {
+  final int count;
+  final Color color;
+  final bool isDownward;
+
+  MultipleArrowsPainter({
+    required this.count,
+    required this.color,
+    required this.isDownward,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final centerX = size.width / 2;
+
+    // Calculate spacing for arrows
+    final spacing = count > 1 ? 120.0 : 0.0;
+    final totalWidth = (count - 1) * spacing;
+    final startX = centerX - (totalWidth / 2);
+
+    // Draw arrows from each position to center
+    for (int i = 0; i < count; i++) {
+      final fromX = startX + (i * spacing);
+      final fromY = isDownward ? 0.0 : size.height;
+      final toY = isDownward ? size.height : 0.0;
+
+      // Draw line from narrator position to center
+      final path = Path();
+      path.moveTo(fromX, fromY);
+
+      // Draw curved line towards center
+      path.quadraticBezierTo(
+        fromX,
+        fromY + (toY - fromY) * 0.5,
+        centerX,
+        toY,
+      );
+
+      canvas.drawPath(path, paint);
+
+      // Draw arrowhead at center
+      final arrowPath = Path();
+      final arrowSize = 8.0;
+
+      if (isDownward) {
+        arrowPath.moveTo(centerX - arrowSize, size.height - arrowSize);
+        arrowPath.lineTo(centerX, size.height);
+        arrowPath.lineTo(centerX + arrowSize, size.height - arrowSize);
+      } else {
+        arrowPath.moveTo(centerX - arrowSize, arrowSize);
+        arrowPath.lineTo(centerX, 0);
+        arrowPath.lineTo(centerX + arrowSize, arrowSize);
+      }
+
+      canvas.drawPath(arrowPath, paint..style = PaintingStyle.fill);
+      paint.style = PaintingStyle.stroke;
+    }
   }
 
   @override

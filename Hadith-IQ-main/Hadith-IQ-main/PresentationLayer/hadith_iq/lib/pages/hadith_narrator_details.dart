@@ -408,13 +408,20 @@ class CustomLTRArrowPainter extends CustomPainter {
     path.moveTo(70, 10); // Start from right
     path.lineTo(10, 10); // Draw to left
 
-    // Small Arrowhead pointing left
-    path.moveTo(10, 10);
-    path.lineTo(15, 7); // Upper diagonal line
-    path.moveTo(10, 10);
-    path.lineTo(15, 13); // Lower diagonal line
-
     canvas.drawPath(path, paint);
+
+    // Filled arrowhead pointing left for better visibility
+    final arrowPath = Path();
+    arrowPath.moveTo(10, 10); // Arrow tip (pointing left)
+    arrowPath.lineTo(16, 7); // Upper point
+    arrowPath.lineTo(16, 13); // Lower point
+    arrowPath.close(); // Close the path to create filled triangle
+
+    final arrowPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill; // Fill the arrowhead
+
+    canvas.drawPath(arrowPath, arrowPaint);
   }
 
   @override

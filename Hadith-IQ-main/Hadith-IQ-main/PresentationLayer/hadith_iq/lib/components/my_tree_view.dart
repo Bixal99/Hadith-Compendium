@@ -1165,7 +1165,8 @@ class TreePainter extends CustomPainter {
           _drawSteppedConnection(canvas, parentCenter, childCenter, paint);
           break;
         case LineStyle.rounded:
-          _drawRoundedConnection(canvas, parentCenter, childCenter, child, paint);
+          _drawRoundedConnection(
+              canvas, parentCenter, childCenter, child, paint);
           break;
         case LineStyle.dashed:
           _drawDashedConnection(canvas, parentCenter, childCenter, paint);
@@ -1216,6 +1217,24 @@ class TreePainter extends CustomPainter {
       path.lineTo(middleX, start.dy);
       path.lineTo(middleX, end.dy);
       path.lineTo(end.dx, end.dy);
+
+      // Draw larger arrowhead pointing left (right to left direction) on horizontal line
+      final arrowSize = 10.0;
+      final arrowWidth = 14.0;
+      final arrowPath = Path();
+      // Position arrowhead on the horizontal segment pointing left
+      final arrowX = middleX - 25; // Position arrowhead before middle
+      arrowPath.moveTo(arrowX, start.dy); // Arrow tip pointing left
+      arrowPath.lineTo(
+          arrowX + arrowWidth, start.dy - arrowSize); // Upper point
+      arrowPath.lineTo(
+          arrowX + arrowWidth, start.dy + arrowSize); // Lower point
+      arrowPath.close();
+
+      final arrowPaint = Paint()
+        ..color = paint.color
+        ..style = PaintingStyle.fill;
+      canvas.drawPath(arrowPath, arrowPaint);
     }
     canvas.drawPath(path, paint);
   }
@@ -1226,7 +1245,8 @@ class TreePainter extends CustomPainter {
     if (layout == TreeLayout.bidirectional ||
         direction == TreeDirection.vertical) {
       path.moveTo(start.dx, start.dy);
-      final controlY = start.dy + (end.dy - start.dy) * (child.isAbove ? 0.3 : 0.7);
+      final controlY =
+          start.dy + (end.dy - start.dy) * (child.isAbove ? 0.3 : 0.7);
       path.quadraticBezierTo(
         start.dx + (end.dx - start.dx) * 0.5,
         controlY,
