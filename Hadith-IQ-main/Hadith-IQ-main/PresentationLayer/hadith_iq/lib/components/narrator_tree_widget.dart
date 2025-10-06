@@ -29,9 +29,6 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
 
   // Current narrator for navigation
   late String _currentNarrator;
-  
-  // Zoom level for the tree
-  double _zoomLevel = 1.0;
 
   @override
   void initState() {
@@ -307,32 +304,18 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
       );
     }
 
-    return Stack(
-      children: [
-        SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              // Navigation controls
-              _buildNavigationControls(),
-              const SizedBox(height: 16),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          // Navigation controls
+          _buildNavigationControls(),
+          const SizedBox(height: 16),
 
-              // Tree visualization with zoom
-              Transform.scale(
-                scale: _zoomLevel,
-                child: _buildTreeVisualization(),
-              ),
-            ],
-          ),
-        ),
-        
-        // Zoom controls positioned at bottom right
-        Positioned(
-          bottom: 20,
-          right: 20,
-          child: _buildZoomControls(),
-        ),
-      ],
+          // Tree visualization
+          _buildTreeVisualization(),
+        ],
+      ),
     );
   }
 
@@ -593,7 +576,7 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
           ),
           // Individual arrows from each teacher box converging to center - more space
           SizedBox(
-            height: 500,
+            height: 400,
             width: narrators.length * approximateBoxWidth,
             child: CustomPaint(
               painter: ConnectedArrowsPainter(
@@ -608,7 +591,7 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
         ] else ...[
           // Individual arrows from center diverging to each student box - more space
           SizedBox(
-            height: 500,
+            height: 400,
             width: narrators.length * approximateBoxWidth,
             child: CustomPaint(
               painter: ConnectedArrowsFromCenterPainter(
@@ -924,85 +907,6 @@ class _NarratorTreeWidgetState extends State<NarratorTreeWidget> {
               ),
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildZoomControls() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withOpacity(0.2),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Zoom In button
-          IconButton(
-            onPressed: () {
-              setState(() {
-                if (_zoomLevel < 2.0) {
-                  _zoomLevel += 0.1;
-                }
-              });
-            },
-            icon: const Icon(Icons.add),
-            tooltip: 'Zoom In',
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          
-          // Zoom level indicator
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.primaryContainer.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              '${(_zoomLevel * 100).toInt()}%',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-            ),
-          ),
-          
-          // Zoom Out button
-          IconButton(
-            onPressed: () {
-              setState(() {
-                if (_zoomLevel > 0.5) {
-                  _zoomLevel -= 0.1;
-                }
-              });
-            },
-            icon: const Icon(Icons.remove),
-            tooltip: 'Zoom Out',
-            color: Theme.of(context).colorScheme.primary,
-          ),
-          
-          // Reset zoom button
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _zoomLevel = 1.0;
-              });
-            },
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Reset Zoom',
-            color: Theme.of(context).colorScheme.secondary,
-          ),
         ],
       ),
     );
