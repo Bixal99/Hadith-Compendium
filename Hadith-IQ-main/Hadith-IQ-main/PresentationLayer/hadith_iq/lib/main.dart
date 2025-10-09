@@ -16,7 +16,6 @@ import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main() {
-
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
     await windowManager.ensureInitialized();
@@ -31,6 +30,7 @@ void main() {
     await windowManager.waitUntilReadyToShow(windowOptions, () async {
       await windowManager.show();
       await windowManager.focus();
+      await windowManager.maximize();
     });
 
     // Catch all Flutter framework errors (UI thread)
